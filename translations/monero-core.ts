@@ -236,7 +236,7 @@
     </message>
     <message>
         <location filename="../pages/History.qml" line="157"/>
-        <source>Search...</source>
+        <source>Search by Transaction ID, Destination address, Description or Amount</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
