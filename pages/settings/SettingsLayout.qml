@@ -51,11 +51,10 @@ Rectangle {
         anchors.topMargin: 0
         spacing: 6
 
-        MoneroComponents.CheckBox {
-            id: customDecorationsCheckBox
-            checked: persistentSettings.customDecorations
-            onClicked: Windows.setCustomWindowDecorations(checked)
-            text: qsTr("Custom decorations") + translationManager.emptyString
+        MoneroComponents.Label {
+             id: soloTitleLabel3
+             fontSize: 24
+             text: qsTr("Security") + translationManager.emptyString
         }
 
         MoneroComponents.CheckBox {
@@ -68,49 +67,26 @@ Rectangle {
             text: qsTr("Hide balance") + translationManager.emptyString
         }
 
-        MoneroComponents.CheckBox {
-            id: themeCheckbox
-            checked: !MoneroComponents.Style.blackTheme
-            text: qsTr("Light theme") + translationManager.emptyString
-            toggleOnClick: false
-            onClicked: {
-                MoneroComponents.Style.blackTheme = !MoneroComponents.Style.blackTheme;
-                persistentSettings.blackTheme = MoneroComponents.Style.blackTheme;
-            }
-        }
+        ColumnLayout {
+            Layout.fillWidth: true
 
-        MoneroComponents.CheckBox {
+	MoneroComponents.CheckBox {
             id: userInActivityCheckbox
             checked: persistentSettings.lockOnUserInActivity
             onClicked: persistentSettings.lockOnUserInActivity = !persistentSettings.lockOnUserInActivity
-            text: qsTr("Lock wallet on inactivity") + translationManager.emptyString
+            text: {
+	                var val = userInactivitySlider.value;
+        	        var minutes = val > 1 ? qsTr("minutes") : qsTr("minute");
+			qsTr("Lock wallet on inactivity after ") + val + " " + minutes + translationManager.emptyString;
+		  }
         }
-
-        ColumnLayout {
-            visible: userInActivityCheckbox.checked
-            Layout.fillWidth: true
-            Layout.topMargin: 6
-            Layout.leftMargin: 42
-            spacing: 0
-
-            Text {
-                color: MoneroComponents.Style.defaultFontColor
-                font.pixelSize: 14
-                Layout.fillWidth: true
-                text: {
-                    var val = userInactivitySlider.value;
-                    var minutes = val > 1 ? qsTr("minutes") : qsTr("minute");
-
-                    qsTr("After ") + val + " " + minutes + translationManager.emptyString;
-                }
-            }
 
             Slider {
                 id: userInactivitySlider
                 from: 1
                 value: persistentSettings.lockOnUserInActivityInterval
                 to: 60
-                leftPadding: 0
+                leftPadding: 40
                 stepSize: 1
                 snapMode: Slider.SnapAlways
 
@@ -152,11 +128,54 @@ Rectangle {
             }
         }
 
+        MoneroComponents.Label {
+             id: soloTitleLabel4
+             fontSize: 24
+             text: qsTr("Appearance") + translationManager.emptyString
+        }
+
+        MoneroComponents.Label {
+             Layout.fillWidth: true
+             fontSize: 14
+             text: {
+		var language = persistentSettings.language;
+		qsTr("Language: ") + language + translationManager.emptyString;
+	     }
+        }
+
+        MoneroComponents.StandardButton {
+            small: true
+            text: qsTr("Change language") + translationManager.emptyString
+
+            onClicked: {
+                appWindow.toggleLanguageView();
+            }
+        }
+
+
+        MoneroComponents.CheckBox {
+            id: themeCheckbox
+            checked: !MoneroComponents.Style.blackTheme
+            text: qsTr("Use light theme") + translationManager.emptyString
+            toggleOnClick: false
+            onClicked: {
+                MoneroComponents.Style.blackTheme = !MoneroComponents.Style.blackTheme;
+                persistentSettings.blackTheme = MoneroComponents.Style.blackTheme;
+            }
+        }
+
+        MoneroComponents.CheckBox {
+            id: customDecorationsCheckBox
+            checked: persistentSettings.customDecorations
+            onClicked: Windows.setCustomWindowDecorations(checked)
+            text: qsTr("Use custom decorations") + translationManager.emptyString
+        }
+  
         //! Manage pricing
         RowLayout {
             MoneroComponents.CheckBox {
                 id: enableConvertCurrency
-                text: qsTr("Enable displaying balance in other currencies") + translationManager.emptyString
+                text: qsTr("Display balance in other currency") + translationManager.emptyString
                 checked: persistentSettings.fiatPriceEnabled
                 onCheckedChanged: {
                     if (!checked) {
@@ -252,16 +271,6 @@ Rectangle {
             }
         }
 
-        MoneroComponents.StandardButton {
-            visible: !persistentSettings.customDecorations
-            Layout.topMargin: 10
-            small: true
-            text: qsTr("Change language") + translationManager.emptyString
-
-            onClicked: {
-                appWindow.toggleLanguageView();
-            }
-        }
     }
 
     ListModel {
@@ -304,4 +313,3 @@ Rectangle {
         console.log('SettingsLayout loaded');
     }
 }
-
