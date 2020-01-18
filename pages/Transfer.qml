@@ -165,7 +165,7 @@ Rectangle {
                   placeholderText: "0.00"
                   width: 100
                   fontBold: true
-                  inlineButtonText: qsTr("All") + translationManager.emptyString
+                  inlineButtonText: qsTr("ALL") + translationManager.emptyString
                   inlineButton.onClicked: amountLine.text = "(all)"
                   onTextChanged: {
                         const match = amountLine.text.match(/^0+(\d.*)/);
