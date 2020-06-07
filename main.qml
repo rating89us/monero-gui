@@ -1981,6 +1981,7 @@ ApplicationWindow {
             // 2 = always ask
             // Show confirmation dialog
             localNodeRunningConfirmationDialog.title = qsTr("Local node is running") + translationManager.emptyString;
+            localNodeRunningConfirmationDialog..closeVisible = false;
             localNodeRunningConfirmationDialog.text  = qsTr("Your local node is now running in the background. It is recommended to keep it running in order to help the network and to maintain your blockchain synchronized.") + translationManager.emptyString;
             localNodeRunningConfirmationDialog.icon = StandardIcon.Question;
             localNodeRunningConfirmationDialog.cancelText = qsTr("Stop local node") + translationManager.emptyString;
