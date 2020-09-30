@@ -1202,10 +1202,11 @@ Rectangle {
                         for(var i = 0; i < res.length; i+=1){
                             if(res[i].containsMouse === true){
                                 if(res[i].state === 'copyable' && res[i].parent.hasOwnProperty('text')) toClipboard(res[i].parent.text);
-                                if(res[i].state === 'copyable_address') root.toClipboard(address);
+                                if(res[i].state === 'copyable_address') (address ? root.toClipboard(address) : root.toClipboard(addressField.text));
+                                if(res[i].state === 'copyable_receiving_address') root.toClipboard(currentWallet.address(subaddrAccount, subaddrIndex));
                                 if(res[i].state === 'copyable_txkey') root.getTxKey(hash, res[i]);
                                 if(res[i].state === 'set_tx_note') root.editDescription(hash, tx_note);
-                                if(res[i].state === 'details') root.showTxDetails(hash, paymentId, destinations, subaddrAccount, subaddrIndex, dateTime, displayAmount, isout);
+                                if(res[i].state === 'details') root.showTxDetails(hash, paymentId, destinations, subaddrAccount, subaddrIndex, dateTime, (amount == 0 ? null : displayAmount), isout, fee);
                                 if(res[i].state === 'proof') root.showTxProof(hash, paymentId, destinations, subaddrAccount, subaddrIndex);
                                 doCollapse = false;
                                 break;
@@ -1510,7 +1511,7 @@ Rectangle {
             root.txModelData.push({
                 "i": i,
                 "isout": isout,
-                "amount": Number(amount),
+                "amount": Utils.removeTrailingZeros(displayAmount.toFixed(12)),
                 "displayAmount": Utils.removeTrailingZeros(displayAmount.toFixed(12)) + " XMR",
                 "hash": hash,
                 "paymentId": paymentId,
@@ -1595,11 +1596,13 @@ Rectangle {
         }
     }
 
-    function showTxDetails(hash, paymentId, destinations, subaddrAccount, subaddrIndex, dateTime, amount, isout) {
+    function showTxDetails(hash, paymentId, destinations, subaddrAccount, subaddrIndex, dateTime, amount, isout, fee) {
         var tx_note = currentWallet.getUserNote(hash)
         var rings = currentWallet.getRings(hash)
         var address_label = subaddrIndex == 0 ? (qsTr("Primary address") + translationManager.emptyString) : currentWallet.getSubaddressLabel(subaddrAccount, subaddrIndex)
         var address = currentWallet.address(subaddrAccount, subaddrIndex)
+        var destinationsAddress = TxUtils.destinationsToAddress(destinations)
+
         const hasPaymentId = parseInt(paymentId, 16);
         const integratedAddress = !isout && hasPaymentId ? currentWallet.integratedAddress(paymentId) : null;
 
@@ -1608,7 +1611,7 @@ Rectangle {
 
         currentWallet.getTxKeyAsync(hash, function(hash, tx_key) {
             informationPopup.title = qsTr("Transaction details") + translationManager.emptyString;
-            informationPopup.content = buildTxDetailsString(hash, hasPaymentId ? paymentId : null, tx_key, tx_note, destinations, rings, address, address_label, integratedAddress, dateTime, amount);
+            informationPopup.content = buildTxDetailsString(hash, hasPaymentId ? paymentId : null, tx_key, tx_note, destinations, destinationsAddress, rings, address, address_label, integratedAddress, dateTime, amount, isout, fee);
             informationPopup.onCloseCallback = null
             informationPopup.open();
         });
@@ -1636,7 +1639,7 @@ Rectangle {
         appWindow.showStatusMessage(qsTr("Copied to clipboard"),3);
     }
 
-    function buildTxDetailsString(tx_id, paymentId, tx_key,tx_note, destinations, rings, address, address_label, integratedAddress, dateTime, amount) {
+    function buildTxDetailsString(tx_id, paymentId, tx_key, tx_note, destinations, destinationsAddress, rings, address, address_label, integratedAddress, dateTime, amount, isout, fee) {
         var trStart = '<tr><td style="white-space: nowrap; padding-top:5px"><b>',
             trMiddle = '</b></td><td style="padding-left:10px;padding-top:5px;">',
             trEnd = "</td></tr>";
@@ -1644,8 +1647,12 @@ Rectangle {
         return '<table border="0">'
             + (tx_id ? trStart + qsTr("Tx ID:") + trMiddle + tx_id + trEnd : "")
             + (dateTime ? trStart + qsTr("Date") + ":" + trMiddle + dateTime + trEnd : "")
-            + (amount ? trStart + qsTr("Amount") + ":" + trMiddle + amount + trEnd : "")
-            + (address ? trStart + qsTr("Address:") + trMiddle + address + trEnd : "")
+            + (amount ? trStart + qsTr("Amount") + ":" + trMiddle + amount + trEnd : trStart + qsTr("Amount") + ":" + trMiddle + qsTr("Unknown (restored wallet)") + trEnd)
+            + trStart + qsTr("Fee") + ":" + trMiddle + (isout ? Utils.removeTrailingZeros(fee) + " XMR" : qsTr("Unknown")) + trEnd
+            + trStart + qsTr("From") + ":" + trMiddle + (isout ? qsTr("My wallet") : (amount ? qsTr("Unknown sender") : qsTr("My wallet"))) + trEnd
+            + (destinations ? "" : trStart + qsTr("To") + ":" + trMiddle + (isout ? (amount ? qsTr("External address") : qsTr("My wallet")) : qsTr("My wallet")) + trEnd)
+            //+ (address ? trStart + qsTr("Address:") + trMiddle + (amount ? address : qsTr("Unknown (restored wallet)")) + trEnd : "")
+            + trStart + qsTr("Destination address:") + trMiddle + (destinations ? destinationsAddress : (isout ? qsTr("Unknown (restored wallet)") : address)) + trEnd
             + (paymentId ? trStart + qsTr("Payment ID:") + trMiddle + paymentId + trEnd : "")
             + (integratedAddress ? trStart + qsTr("Integrated address") + ":" + trMiddle + integratedAddress + trEnd : "")
             + (tx_key ? trStart + qsTr("Tx key:") + trMiddle + tx_key + trEnd : "")
