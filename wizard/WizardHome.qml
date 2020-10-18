@@ -27,6 +27,7 @@
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import QtQuick 2.9
+import QtQuick.XmlListModel 2.0
 import QtQuick.Dialogs 1.2
 import QtQuick.Layouts 1.2
 import QtQuick.Controls 2.0
@@ -148,12 +149,65 @@ Rectangle {
                     }                    
                 }
 
-                MoneroComponents.StandardButton {
-                    small: true
-                    text: qsTr("Change language") + translationManager.emptyString
+                ListView {
+                    id: flagListView
+                    interactive: false
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    model: langModel
 
-                    onClicked: {
-                        appWindow.toggleLanguageView();
+                    delegate: Rectangle {
+                        id: item
+                        visible: locale == persistentSettings.locale
+                        color: "transparent"
+                        width: 150
+                        height: locale == persistentSettings.locale ? 32 : 0
+
+                        Rectangle {
+                            id: flagRect
+                            height: 24
+                            width: 24
+                            anchors.left: parent.left
+                            anchors.leftMargin: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: "transparent"
+
+                            Image {
+                                anchors.fill: parent
+                                source: flag
+                            }
+                        }
+
+                        MoneroComponents.TextPlain {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 30
+                            font.bold: true
+                            font.pixelSize: 14
+                            color: MoneroComponents.Style.defaultFontColor
+                            text: display_name
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var locale_spl = locale.split("_");
+
+                                // reload active translations
+                                translationManager.setLanguage(locale_spl[0]);
+
+                                // set wizard language settings
+                                wizard.language_locale = locale;
+                                wizard.language_wallet = wallet_language;
+                                wizard.language_language = display_name;
+
+                                appWindow.toggleLanguageView();
+                            }
+                            hoverEnabled: true
+                            onEntered: parent.opacity = 1
+                            onExited: parent.opacity = 0.8
+                        }
                     }
                 }
             }
@@ -241,6 +295,27 @@ Rectangle {
         NumberAnimation {
             duration: 200;
             easing.type: Easing.InCubic;
+        }
+    }
+
+    //Flags model
+    XmlListModel {
+        id: langModel
+        source: "/lang/languages.xml"
+        query: "/languages/language"
+
+        XmlRole { name: "display_name"; query: "@display_name/string()" }
+        XmlRole { name: "locale"; query: "@locale/string()" }
+        XmlRole { name: "wallet_language"; query: "@wallet_language/string()" }
+        XmlRole { name: "flag"; query: "@flag/string()" }
+        // TODO: XmlListModel is read only, we should store current language somewhere else
+        // and set current language accordingly
+        XmlRole { name: "isCurrent"; query: "@enabled/string()" }
+
+        onStatusChanged: {
+            if(status === XmlListModel.Ready){
+                console.log("languages available: ",count);
+            }
         }
     }
 
