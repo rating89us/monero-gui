@@ -95,8 +95,34 @@ Rectangle {
     function fillPaymentDetails(address, payment_id, amount, tx_description, recipient_name) {
         if (recipientModel.count > 0) {
             const last = recipientModel.count - 1;
-            if (recipientModel.get(recipientModel.count - 1).address == "") {
-                recipientModel.remove(last);
+            if (recipientModel.get(last).address == "") {
+                if (recipientModel.get(0).amount == "(all)") {
+                    //address = "" & amount = (all)
+                    recipientModel.remove(last);
+                    recipientModel.newRecipient(address, "(all)");
+                    setPaymentId(payment_id || "");
+                    setDescription((recipient_name ? recipient_name + " " : "") + (tx_description || ""));
+                    return;
+                } else {
+                    //address = "" & amount != (all)
+                    var deletedAmount = recipientModel.get(last).amount;
+                    recipientModel.remove(last);
+                    recipientModel.newRecipient(address, Utils.removeTrailingZeros(deletedAmount));
+                    setPaymentId(payment_id || "");
+                    setDescription((recipient_name ? recipient_name + " " : "") + (tx_description || ""));
+                    return;
+                }
+            } else {
+                if (recipientModel.get(0).amount == "(all)") {
+                    //address != "" & amount = (all)
+                    var deletedAddress = recipientModel.get(0).address;
+                    recipientModel.remove(0);
+                    recipientModel.newRecipient(deletedAddress, "");
+                    recipientModel.newRecipient(address, Utils.removeTrailingZeros(""));
+                    setPaymentId(payment_id || "");
+                    setDescription((recipient_name ? recipient_name + " " : "") + (tx_description || ""));
+                    return;
+                }
             }
         }
 
@@ -519,15 +545,7 @@ Rectangle {
                         CheckBox {
                             border: false
                             checked: false
-                            enabled: {
-                                if (recipientModel.count > 0 && recipientModel.get(0).amount == "(all)") {
-                                    return false;
-                                }
-                                if (recipientModel.count >= recipientModel.maxRecipients) {
-                                    return false;
-                                }
-                                return true;
-                            }
+                            enabled: recipientModel.count < recipientModel.maxRecipients
                             fontAwesomeIcons: true
                             fontSize: descriptionLine.labelFontSize
                             iconOnTheLeft: true
@@ -535,6 +553,11 @@ Rectangle {
                             toggleOnClick: false
                             uncheckedIcon: FontAwesome.plusCircle
                             onClicked: {
+                                if (recipientModel.count > 0 && recipientModel.get(0).amount == "(all)") {
+                                    var removedAddress = recipientModel.get(0).address;
+                                    recipientModel.remove(0);
+                                    recipientModel.newRecipient(removedAddress, "");
+                                }
                                 recipientModel.newRecipient("", "");
                             }
                         }
