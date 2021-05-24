@@ -58,8 +58,9 @@ ApplicationWindow {
         (persistentSettings.displayWalletNameInTitleBar && walletName
         ? " - " + walletName
         : "")
-    minimumWidth: 750
+    minimumWidth: 375
     minimumHeight: 450
+
 
     property var currentItem
     property bool hideBalanceForced: false
@@ -1755,9 +1756,44 @@ ApplicationWindow {
             id: blurredArea
             anchors.fill: parent
 
+            UpperPanel {
+                id: upperPanel
+                visible: isAndroid && rootItem.state == "normal" && middlePanel.state !== "Merchant"
+                z: leftPanel.z
+                height: 50
+                anchors.top: parent.top
+                anchors.bottom: leftPanel.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+
+                onTransferClicked: {
+                    middlePanel.state = "Transfer";
+                    middlePanel.flickable.contentY = 0;
+                    updateBalance();
+                }
+
+                onReceiveClicked: {
+                    middlePanel.state = "Receive";
+                    middlePanel.flickable.contentY = 0;
+                    updateBalance();
+                }
+
+                onHistoryClicked: {
+                    middlePanel.state = "History";
+                    middlePanel.flickable.contentY = 0;
+                    updateBalance();
+                }
+
+                onSettingsClicked: {
+                    middlePanel.state = "Settings";
+                    middlePanel.flickable.contentY = 0;
+                    updateBalance();
+                }
+            }
+
             LeftPanel {
                 id: leftPanel
-                anchors.top: parent.top
+                anchors.top: isAndroid ? upperPanel.bottom : parent.top
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 visible: rootItem.state == "normal" && middlePanel.state != "Merchant"
@@ -1815,7 +1851,7 @@ ApplicationWindow {
             MiddlePanel {
                 id: middlePanel
                 accountView.currentAccountIndex: currentWallet ? currentWallet.currentSubaddressAccount : 0
-                anchors.top: parent.top
+                anchors.top: isAndroid ? upperPanel.bottom : parent.top
                 anchors.bottom: parent.bottom
                 anchors.left: leftPanel.visible ? leftPanel.right : parent.left
                 anchors.right: parent.right
@@ -2352,7 +2388,7 @@ ApplicationWindow {
         dragMargin: 0
     }
 
-    MoneroComponents.MenuBar { }
+    MoneroComponents.MenuBar { }
 
     Network {
         id: network
