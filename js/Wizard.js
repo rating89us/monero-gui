@@ -168,3 +168,51 @@ function getApproximateBlockchainHeight(_date, _nettype){
         return 0;
     }
 }
+
+function getApproximateDate(_blockchainheight, _nettype){
+
+    // time of monero birth 2014-04-18 10:49:53 (1397818193)
+    var moneroBirthTime = _nettype == "Mainnet" ? 1397818193 : _nettype == "Testnet" ? 1410295020 : 1518932025;
+    
+    // avg seconds per block in v1
+    var secondsPerBlockV1 = 60;
+    
+    // time of v2 fork 2016-03-23 15:57:38 (1458748658)
+    var forkTime = _nettype == "Mainnet" ? 1458748658 : _nettype == "Testnet" ? 1448285909 : 1520937818;
+    
+    // v2 fork block
+    var forkBlock = _nettype == "Mainnet" ? 1009827 : _nettype == "Testnet" ? 624634 : 32000;
+    
+    // avg seconds per block in V2
+    var secondsPerBlockV2 = 120;
+    
+    // time in UTC
+          // var requestedTime = Math.floor(new Date(_date) / 1000);
+    var requestedBlockheight = _blockchainheight;
+    var approxDate;
+    var secondsPerBlock;
+    
+    // before monero's birth
+    if (requestedBlockheight < 0){
+        console.log("Calculated blockchain height: 0, requestedBlockheight < block 0 " );
+        return 0;
+    }
+    // time between during v1
+  //  if (requestedTime > moneroBirthTime && requestedTime < forkTime){
+   //     approxBlockchainHeight = Math.floor((requestedTime - moneroBirthTime)/secondsPerBlockV1);
+   //     console.log("Calculated blockchain height: " + approxBlockchainHeight );
+    //    secondsPerBlock = secondsPerBlockV1;
+   // }
+    // time is during V2
+    else{
+        approxDate =  Math.floor(((requestedBlockheight - forkBlock) * secondsPerBlockV2) + forkTime);
+        console.log("Calculated date: " + approxDate);
+        var date = new Date(approxDate * 1000)
+        
+        return date + " " + date.getFullYear() + "-" + (date.getMonth() + 1);
+        secondsPerBlock = secondsPerBlockV2;
+    }
+
+
+}
+
