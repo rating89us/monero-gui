@@ -252,6 +252,10 @@ Item {
         id: popup
         padding: 0
         closePolicy: QtQuickControls2.Popup.CloseOnEscape | QtQuickControls2.Popup.CloseOnPressOutsideParent
+        onOpened: {
+            calendar.visibleMonth = currentDate.getMonth();
+            calendar.visibleYear = currentDate.getFullYear();
+        }
 
         Rectangle {
             id: calendarRect
@@ -271,6 +275,10 @@ Item {
 
             MouseArea {
                 anchors.fill: parent
+                onWheel: {
+                    if (wheel.angleDelta.y > 0) return calendar.showPreviousMonth();
+                    if (wheel.angleDelta.y < 0) return calendar.showNextMonth();
+                }
             }
 
             Rectangle {
