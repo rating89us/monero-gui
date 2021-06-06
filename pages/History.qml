@@ -1384,7 +1384,7 @@ Rectangle {
         }
 
         if (typeof root.model !== 'undefined' && root.model != null) {
-            toDatePicker.currentDate = root.model.transactionHistory.lastDateTime
+            toDatePicker.currentDate = new Date(); //today
         }
 
         // extract from model, create JS array of txs
@@ -1762,7 +1762,13 @@ Rectangle {
             root.model = appWindow.currentWallet.historyModel;
             root.model.sortRole = TransactionHistoryModel.TransactionBlockHeightRole
             root.model.sort(0, Qt.DescendingOrder);
-            fromDatePicker.currentDate = model.transactionHistory.firstDateTime
+            var count = root.model.rowCount()
+            if (count >0) {
+                //first transaction date
+                fromDatePicker.currentDate = root.model.data(root.model.index((count -1), 0), TransactionHistoryModel.TransactionDateRole);
+            } else {
+                fromDatePicker.currentDate = model.transactionHistory.firstDateTime
+            }
         }
 
         root.reset();
