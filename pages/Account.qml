@@ -48,6 +48,8 @@ Rectangle {
     color: "transparent"
     property var model
     property alias accountHeight: mainLayout.height
+    property alias balanceAllText: balanceAll.text
+    property alias unlockedBalanceAllText: unlockedBalanceAll.text
     property bool selectAndSend: false
     property int currentAccountIndex
 
@@ -101,6 +103,7 @@ Rectangle {
 
                 MoneroComponents.TextPlain {
                     id: balanceAll
+                    Layout.rightMargin: 87
                     font.family: MoneroComponents.Style.fontMonoRegular.name;
                     font.pixelSize: 16
                     color: MoneroComponents.Style.defaultFontColor
@@ -113,7 +116,8 @@ Rectangle {
                         onExited: parent.color = MoneroComponents.Style.defaultFontColor
                         onClicked: {
                             console.log("Copied to clipboard");
-                            clipboard.setText(parent.text);
+                            var balanceAllNumberOnly = parent.text.slice(0, -4);
+                            clipboard.setText(balanceAllNumberOnly);
                             appWindow.showStatusMessage(qsTr("Copied to clipboard"),3)
                         }
                     }
@@ -134,6 +138,7 @@ Rectangle {
 
                 MoneroComponents.TextPlain {
                     id: unlockedBalanceAll
+                    Layout.rightMargin: 87
                     font.family: MoneroComponents.Style.fontMonoRegular.name;
                     font.pixelSize: 16
                     color: MoneroComponents.Style.defaultFontColor
@@ -146,7 +151,8 @@ Rectangle {
                         onExited: parent.color = MoneroComponents.Style.defaultFontColor
                         onClicked: {
                             console.log("Copied to clipboard");
-                            clipboard.setText(parent.text);
+                            var unlockedBalanceAllNumberOnly = parent.text.slice(0, -4);
+                            clipboard.setText(unlockedBalanceAllNumberOnly);
                             appWindow.showStatusMessage(qsTr("Copied to clipboard"),3)
                         }
                     }
@@ -186,9 +192,9 @@ Rectangle {
                     delegate: Rectangle {
                         id: tableItem2
                         height: subaddressAccountListRow.subaddressAccountListItemHeight
-                        width: parent.width
+                        width: parent ? parent.width : undefined
                         Layout.fillWidth: true
-                        color: "transparent"
+                        color: itemMouseArea.containsMouse || index === currentAccountIndex ? MoneroComponents.Style.titleBarButtonHoverColor : "transparent"
 
                         Rectangle {
                             color: MoneroComponents.Style.appWindowBorderColor
@@ -224,7 +230,7 @@ Rectangle {
 
                             MoneroComponents.Label {
                                 id: nameLabel
-                                color: MoneroComponents.Style.dimmedFontColor
+                                color: index === currentAccountIndex ? MoneroComponents.Style.defaultFontColor : MoneroComponents.Style.dimmedFontColor
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: idLabel.right
                                 anchors.leftMargin: 6
@@ -239,23 +245,11 @@ Rectangle {
                                 id: addressLabel
                                 color: MoneroComponents.Style.defaultFontColor
                                 anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: mainLayout.width >= 590 ? balanceTextLabel.left : balanceNumberLabel.left
+                                anchors.left: balanceNumberLabel.left
                                 anchors.leftMargin: -addressLabel.width - 30
                                 fontSize: 16
                                 fontFamily: MoneroComponents.Style.fontMonoRegular.name;
                                 text: TxUtils.addressTruncatePretty(address, mainLayout.width < 740 ? 1 : (mainLayout.width < 900 ? 2 : 3))
-                                themeTransition: false
-                            }
-
-                            MoneroComponents.Label {
-                                id: balanceTextLabel
-                                visible: mainLayout.width >= 590
-                                color: MoneroComponents.Style.defaultFontColor
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: balanceNumberLabel.left
-                                anchors.leftMargin: -balanceTextLabel.width - 5
-                                fontSize: 16
-                                text: qsTr("Balance: ") + translationManager.emptyString
                                 themeTransition: false
                             }
 
@@ -267,18 +261,17 @@ Rectangle {
                                 anchors.leftMargin: -balanceNumberLabel.width
                                 fontSize: 16
                                 fontFamily: MoneroComponents.Style.fontMonoRegular.name;
-                                text: balance
+                                text: balance + " XMR"
                                 elide: Text.ElideRight
-                                textWidth: mainLayout.width < 660 ? 70 : 135
+                                textWidth: 180
                                 themeTransition: false
                             }
 
                             MouseArea {
+                                id: itemMouseArea
                                 cursorShape: Qt.PointingHandCursor
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onEntered: tableItem2.color = MoneroComponents.Style.titleBarButtonHoverColor
-                                onExited: tableItem2.color = "transparent"
                                 onClicked: {
                                     appWindow.currentWallet.switchSubaddressAccount(index);
                                     if (selectAndSend)
@@ -297,10 +290,14 @@ Rectangle {
                             MoneroComponents.IconButton {
                                 id: renameButton
                                 image: "qrc:///images/edit.svg"
+                                fontAwesomeFallbackIcon: FontAwesome.edit
+                                fontAwesomeFallbackSize: 22
                                 color: MoneroComponents.Style.defaultFontColor
-                                opacity: 0.5
+                                opacity: isOpenGL ? 0.5 : 1
+                                fontAwesomeFallbackOpacity: 0.5
                                 Layout.preferredWidth: 23
                                 Layout.preferredHeight: 21
+                                tooltip: qsTr("Edit account label") + translationManager.emptyString
 
                                 onClicked: pageAccount.renameSubaddressAccountLabel(index);
                             }
@@ -308,10 +305,14 @@ Rectangle {
                             MoneroComponents.IconButton {
                                 id: copyButton
                                 image: "qrc:///images/copy.svg"
+                                fontAwesomeFallbackIcon: FontAwesome.clipboard
+                                fontAwesomeFallbackSize: 22
                                 color: MoneroComponents.Style.defaultFontColor
-                                opacity: 0.5
+                                opacity: isOpenGL ? 0.5 : 1
+                                fontAwesomeFallbackOpacity: 0.5
                                 Layout.preferredWidth: 16
                                 Layout.preferredHeight: 21
+                                tooltip: qsTr("Copy address to clipboard") + translationManager.emptyString
 
                                 onClicked: {
                                     console.log("Address copied to clipboard");
@@ -373,8 +374,8 @@ Rectangle {
             subaddressAccountListView.model = appWindow.currentWallet.subaddressAccountModel;
             appWindow.currentWallet.subaddress.refresh(appWindow.currentWallet.currentSubaddressAccount)
 
-            balanceAll.text = walletManager.displayAmount(appWindow.currentWallet.balanceAll())
-            unlockedBalanceAll.text = walletManager.displayAmount(appWindow.currentWallet.unlockedBalanceAll()) 
+            balanceAll.text = walletManager.displayAmount(appWindow.currentWallet.balanceAll()) + " XMR"
+            unlockedBalanceAll.text = walletManager.displayAmount(appWindow.currentWallet.unlockedBalanceAll()) + " XMR"
         }
     }
 

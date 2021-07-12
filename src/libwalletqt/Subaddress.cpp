@@ -32,14 +32,11 @@
 Subaddress::Subaddress(Monero::Subaddress *subaddressImpl, QObject *parent)
   : QObject(parent), m_subaddressImpl(subaddressImpl)
 {
-    qDebug(__FUNCTION__);
     getAll();
 }
 
 void Subaddress::getAll() const
 {
-    qDebug(__FUNCTION__);
-
     emit refreshStarted();
 
     {
@@ -81,7 +78,14 @@ void Subaddress::setLabel(quint32 accountIndex, quint32 addressIndex, const QStr
 
 void Subaddress::refresh(quint32 accountIndex) const
 {
-    m_subaddressImpl->refresh(accountIndex);
+    try
+    {
+        m_subaddressImpl->refresh(accountIndex);
+    }
+    catch (const std::exception &e)
+    {
+        qCritical() << "Failed to refresh account" << accountIndex << "subaddresses:" << e.what();
+    }
     getAll();
 }
 

@@ -33,9 +33,11 @@ import QtQuick.Controls 2.0
 import "../js/Wizard.js" as Wizard
 import "../components" as MoneroComponents
 
-GridLayout {
+RowLayout {
     id: menuNav
     property alias progressEnabled: wizardProgress.visible
+    property var btnPrevKeyNavigationBackTab: btnNext
+    property var btnNextKeyNavigationTab: btnPrev
     property int progressSteps: 0
     property int progress: 0
     property bool autoTransition: true
@@ -46,7 +48,6 @@ GridLayout {
     Layout.topMargin: 20
     Layout.preferredHeight: 70
     Layout.preferredWidth: parent.width
-    columns: 3
 
     signal nextClicked;
     signal prevClicked;
@@ -65,7 +66,6 @@ GridLayout {
 
     Rectangle {
         Layout.preferredHeight: parent.height
-        Layout.fillWidth: true
         color: "transparent"
 
         MoneroComponents.StandardButton {
@@ -79,7 +79,18 @@ GridLayout {
             onClicked: {
                 menuNav.m_prevClicked();
                 menuNav.prevClicked();
+                focus = false;
             }
+            Accessible.role: Accessible.Button
+            Accessible.name: text
+            KeyNavigation.up: btnPrevKeyNavigationBackTab
+            KeyNavigation.backtab: btnPrevKeyNavigationBackTab
+            KeyNavigation.down: wizardProgress.visible ? wizardProgress
+                                                       : btnNext.visible && btnNext.enabled ? btnNext
+                                                                                            : btnNextKeyNavigationTab
+            KeyNavigation.tab: wizardProgress.visible ? wizardProgress
+                                                      : btnNext.visible && btnNext.enabled ? btnNext
+                                                                                           : btnNextKeyNavigationTab
         }
     }
 
@@ -89,19 +100,36 @@ GridLayout {
         Layout.fillWidth: true
         color: "transparent"
 
-        RowLayout {
+        PageIndicator {
             id: wizardProgress
-            spacing: 0
-            width: 100  // default, dynamically set later
-            height: 30
+            currentIndex: menuNav.progress
+            count: menuNav.progressSteps
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
+            spacing: 25
+            delegate: Rectangle {
+                implicitWidth: 10
+                implicitHeight: 10
+                radius: 10
+                // @TODO: Qt 5.10+ replace === with <=
+                color: index === menuNav.progress ? MoneroComponents.Style.defaultFontColor : MoneroComponents.Style.progressBarBackgroundColor
+            }
+            Accessible.role: Accessible.Indicator
+            Accessible.name: qsTr("Step (%1) of (%2)").arg(currentIndex + 1).arg(count) + translationManager.emptyString
+            KeyNavigation.up: btnPrev
+            KeyNavigation.backtab: btnPrev
+            KeyNavigation.down: btnNext
+            KeyNavigation.tab: btnNext
+
+            Rectangle {
+                anchors.fill: parent
+                color: wizardProgress.focus ? MoneroComponents.Style.titleBarButtonHoverColor : "transparent"
+            }
         }
     }
 
     Rectangle {
         Layout.preferredHeight: parent.height
-        Layout.fillWidth: true
         color: "transparent"
 
         MoneroComponents.StandardButton {
@@ -115,17 +143,14 @@ GridLayout {
             onClicked: {
                 menuNav.m_nextClicked();
                 menuNav.nextClicked();
+                focus = false;
             }
+            Accessible.role: Accessible.Button
+            Accessible.name: text
+            KeyNavigation.up: wizardProgress.visible ? wizardProgress : btnPrev
+            KeyNavigation.backtab: wizardProgress.visible ? wizardProgress : btnPrev
+            KeyNavigation.down: btnNextKeyNavigationTab
+            KeyNavigation.tab: btnNextKeyNavigationTab
         }
-    }
-
-    Component.onCompleted: {
-        for(var i =0; i < menuNav.progressSteps; i++) {
-            var active = i < menuNav.progress ? 'true' : 'false';
-            Qt.createQmlObject("WizardNavProgressDot { active: " + active + " }", wizardProgress, 'dynamicWizardNavDot');
-        }
-
-        // Set `wizardProgress` width based on amount of progress dots
-        wizardProgress.width = 30 * menuNav.progressSteps;
     }
 }

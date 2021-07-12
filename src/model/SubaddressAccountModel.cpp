@@ -35,17 +35,14 @@
 SubaddressAccountModel::SubaddressAccountModel(QObject *parent, SubaddressAccount *subaddressAccount)
     : QAbstractListModel(parent), m_subaddressAccount(subaddressAccount)
 {
-    qDebug(__FUNCTION__);
     connect(m_subaddressAccount,SIGNAL(refreshStarted()),this,SLOT(startReset()));
     connect(m_subaddressAccount,SIGNAL(refreshFinished()),this,SLOT(endReset()));
 }
 
 void SubaddressAccountModel::startReset(){
-    qDebug("SubaddressAccountModel::startReset");
     beginResetModel();
 }
 void SubaddressAccountModel::endReset(){
-    qDebug("SubaddressAccountModel::endReset");
     endResetModel();
 }
 
@@ -56,7 +53,7 @@ int SubaddressAccountModel::rowCount(const QModelIndex &) const
 
 QVariant SubaddressAccountModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || (unsigned)index.row() >= m_subaddressAccount->count())
+    if (!index.isValid() || index.row() < 0 || static_cast<quint64>(index.row()) >= m_subaddressAccount->count())
         return {};
 
     QVariant result;

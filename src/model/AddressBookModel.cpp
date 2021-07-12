@@ -35,18 +35,15 @@
 AddressBookModel::AddressBookModel(QObject *parent, AddressBook *addressBook)
     : QAbstractListModel(parent) , m_addressBook(addressBook)
 {
-    qDebug(__FUNCTION__);
     connect(m_addressBook,SIGNAL(refreshStarted()),this,SLOT(startReset()));
     connect(m_addressBook,SIGNAL(refreshFinished()),this,SLOT(endReset()));
 
 }
 
 void AddressBookModel::startReset(){
-    qDebug(__FUNCTION__);
     beginResetModel();
 }
 void AddressBookModel::endReset(){
-    qDebug(__FUNCTION__);
     endResetModel();
 }
 
@@ -74,6 +71,8 @@ QVariant AddressBookModel::data(const QModelIndex &index, int role) const
             // Qt doesnt support size_t overload type casting
             result.setValue(row.getRowId());
             break;
+        default:
+            qCritical() << "Unimplemented role " << role;
         }
     });
     if (!found) {
@@ -86,11 +85,6 @@ QVariant AddressBookModel::data(const QModelIndex &index, int role) const
 bool AddressBookModel::deleteRow(int row)
 {
     return m_addressBook->deleteRow(row);
-}
-
-int AddressBookModel::lookupPaymentID(const QString &payment_id) const
-{
-    return m_addressBook->lookupPaymentID(payment_id);
 }
 
 QHash<int, QByteArray> AddressBookModel::roleNames() const

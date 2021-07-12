@@ -53,11 +53,6 @@ Rectangle {
         ListElement { column1: "Trezor Model T"; column2: "Trezor";}
     }
 
-    function update(){
-        // update device dropdown
-        deviceNameDropdown.update();
-    }
-
     ColumnLayout {
         id: pageRoot
         Layout.alignment: Qt.AlignHCenter;
@@ -85,11 +80,20 @@ Rectangle {
 
             ColumnLayout {
                 spacing: 0
-                Layout.topMargin: 10
+                Layout.topMargin: -10
                 Layout.fillWidth: true
+
+                MoneroComponents.StandardDropdown {
+                    id: deviceNameDropdown
+                    dataModel: deviceNameModel
+                    Layout.fillWidth: true
+                    Layout.topMargin: 0
+                    z: 3
+                }
 
                 MoneroComponents.RadioButton {
                     id: newDeviceWallet
+                    Layout.topMargin: 20
                     text: qsTr("Create a new wallet from device.") + translationManager.emptyString
                     fontSize: 16
                     checked: true
@@ -132,14 +136,6 @@ Rectangle {
                     text: "0"
                 }
 
-                MoneroComponents.StandardDropdown {
-                    id: deviceNameDropdown
-                    dataModel: deviceNameModel
-                    Layout.fillWidth: true
-                    Layout.topMargin: 6
-                    z: 3
-                }
-
                 CheckBox2 {
                     id: showAdvancedCheckbox
                     checked: false
@@ -174,8 +170,8 @@ Rectangle {
             }
 
             WizardNav {
-                progressSteps: 4
-                progress: 1
+                progressSteps: appWindow.walletMode <= 1 ? 3 : 4
+                progress: 0
                 btnNext.enabled: walletInput.verify() && wizardCreateDevice1.deviceName;
                 btnPrev.text: qsTr("Back to menu") + translationManager.emptyString
                 btnNext.text: qsTr("Create wallet") + translationManager.emptyString
@@ -188,15 +184,8 @@ Rectangle {
                     wizardController.walletOptionsDeviceName = wizardCreateDevice1.deviceName;
                     if(lookahead.text)
                         wizardController.walletOptionsSubaddressLookahead = lookahead.text;
-                    var _restoreHeight = 0;
                     if(restoreHeight.text){
-                        // Parse date string or restore height as integer
-                        if(restoreHeight.text.indexOf('-') === 4 && restoreHeight.text.length === 10){
-                            _restoreHeight = Wizard.getApproximateBlockchainHeight(restoreHeight.text, Utils.netTypeToString());
-                        } else {
-                            _restoreHeight = parseInt(restoreHeight.text)
-                        }
-                        wizardController.walletOptionsRestoreHeight = _restoreHeight;
+                        wizardController.walletOptionsRestoreHeight = Utils.parseDateStringOrRestoreHeightAsInteger(restoreHeight.text);
                     }
 
                     wizardController.walletCreatedFromDevice.connect(onCreateWalletFromDeviceCompleted);
@@ -208,8 +197,6 @@ Rectangle {
 
     Component.onCompleted: {
         errorMsg.text = "";
-        wizardCreateDevice1.update();
-        console.log()
     }
 
     function onPageCompleted(previousView){

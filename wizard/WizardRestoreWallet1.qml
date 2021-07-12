@@ -48,13 +48,10 @@ Rectangle {
 
         var valid = false;
         if(wizardController.walletRestoreMode === "keys") {
-            valid = wizardRestoreWallet1.verifyFromKeys();
-            return valid;
+            return wizardWalletInput.verify() && wizardRestoreWallet1.verifyFromKeys();
         } else if(wizardController.walletRestoreMode === "seed") {
-            valid = wizardWalletInput.verify();
-            if(!valid) return false;
-            valid = Wizard.checkSeed(seedInput.text);
-            return valid;
+            seedInput.error = seedInput.text && !Wizard.checkSeed(seedInput.text);
+            return wizardWalletInput.verify() && seedInput.text && Wizard.checkSeed(seedInput.text);
         }
 
         return false;
@@ -114,7 +111,7 @@ Rectangle {
             }
 
             RowLayout {
-                Layout.topMargin: 10
+                Layout.topMargin: -10
                 spacing: 30
                 Layout.fillWidth: true
 
@@ -164,8 +161,8 @@ Rectangle {
             ColumnLayout {
                 // seed textarea
                 visible: wizardController.walletRestoreMode === 'seed'
-                Layout.preferredHeight: 100
                 Layout.fillWidth: true
+                spacing: 10
 
                 Rectangle {
                     color: "transparent"
@@ -211,11 +208,25 @@ Rectangle {
                             anchors.margins: 8
                             anchors.leftMargin: 10
                             font.family: MoneroComponents.Style.fontRegular.name
-                            text: qsTr("Enter your 25 (or 24) word mnemonic seed") + translationManager.emptyString
+                            text: qsTr("Enter your 25 word mnemonic seed") + translationManager.emptyString
                             color: MoneroComponents.Style.defaultFontColor
                             visible: !seedInput.text
                         }
                     }
+                }
+
+                MoneroComponents.CheckBox2 {
+                    id: seedOffsetCheckbox
+                    text: qsTr("Seed offset passphrase (optional)") + translationManager.emptyString
+                }
+
+                MoneroComponents.LineEdit {
+                    id: seedOffset
+                    password: true
+                    Layout.fillWidth: true
+                    placeholderFontSize: 16
+                    placeholderText: qsTr("Passphrase") + translationManager.emptyString
+                    visible: seedOffsetCheckbox.checked
                 }
             }
 
@@ -248,7 +259,7 @@ Rectangle {
                 visible: wizardController.walletRestoreMode === 'keys'
                 Layout.fillWidth: true
                 placeholderFontSize: 16
-                placeholderText: qsTr("Spend key (private)") + translationManager.emptyString
+                placeholderText: qsTr("Spend key (private)") + " / " + qsTr("Leave blank to create a view-only wallet") + translationManager.emptyString
 
                 onTextUpdated: {
                     wizardRestoreWallet1.verifyFromKeys();
@@ -280,8 +291,8 @@ Rectangle {
 
             WizardNav {
                 id: nav
-                progressSteps: 4
-                progress: 1
+                progressSteps: appWindow.walletMode <= 1 ? 3 : 4
+                progress: 0
                 btnNext.enabled: wizardRestoreWallet1.verify();
                 btnPrev.text: qsTr("Back to menu") + translationManager.emptyString
                 onPrevClicked: {
@@ -294,6 +305,7 @@ Rectangle {
                     switch (wizardController.walletRestoreMode) {
                         case 'seed':
                             wizardController.walletOptionsSeed = seedInput.text;
+                            wizardController.walletOptionsSeedOffset = seedOffsetCheckbox.checked ? seedOffset.text : "";
                             break;
                         default: // walletRestoreMode = keys or qr
                             wizardController.walletOptionsRecoverAddress = addressLine.text;
@@ -302,16 +314,8 @@ Rectangle {
                             break;
                     }
 
-                    var _restoreHeight = 0;
                     if(restoreHeight.text){
-                        // Parse date string or restore height as integer
-                        if(restoreHeight.text.indexOf('-') === 4 && restoreHeight.text.length === 10){
-                            _restoreHeight = Wizard.getApproximateBlockchainHeight(restoreHeight.text, Utils.netTypeToString());
-                        } else {
-                            _restoreHeight = parseInt(restoreHeight.text)
-                        }
-
-                        wizardController.walletOptionsRestoreHeight = _restoreHeight;
+                        wizardController.walletOptionsRestoreHeight = Utils.parseDateStringOrRestoreHeightAsInteger(restoreHeight.text);
                     }
 
                     wizardStateView.state = "wizardRestoreWallet2";
@@ -324,7 +328,12 @@ Rectangle {
         if(previousView.viewName == "wizardHome"){
             // cleanup
             wizardWalletInput.reset();
+            seedRadioButton.checked = true;
+            keysRadioButton.checked = false;
+            qrRadioButton.checked = false;
             seedInput.text = "";
+            seedOffsetCheckbox.checked = false;
+            seedOffset.text = "";
             addressLine.text = "";
             spendKeyLine.text = "";
             viewKeyLine.text = "";

@@ -30,13 +30,14 @@
 #define ADDRESSBOOK_H
 
 #include <wallet/api/wallet2_api.h>
+#include <QMap>
 #include <QObject>
 #include <QReadWriteLock>
 #include <QList>
 #include <QDateTime>
 
 namespace Monero {
-class AddressBook;
+struct AddressBook;
 }
 class AddressBookRow;
 
@@ -50,7 +51,7 @@ public:
     quint64 count() const;
     Q_INVOKABLE QString errorString() const;
     Q_INVOKABLE int errorCode() const;
-    Q_INVOKABLE int lookupPaymentID(const QString &payment_id) const;
+    Q_INVOKABLE QString getDescription(const QString &address) const;
 
     enum ErrorCode {
         Status_Ok,
@@ -76,7 +77,8 @@ private:
     friend class Wallet;
     Monero::AddressBook * m_addressBookImpl;
     mutable QReadWriteLock m_lock;
-    mutable QList<Monero::AddressBookRow*> m_rows;
+    QList<Monero::AddressBookRow*> m_rows;
+    QMap<QString, size_t> m_addresses;
 };
 
 #endif // ADDRESSBOOK_H

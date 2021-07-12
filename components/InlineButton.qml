@@ -30,29 +30,29 @@ import QtQuick 2.9
 import QtQuick.Layouts 1.1
 import QtGraphicalEffects 1.0
 
+import FontAwesome 1.0
+
 import "." as MoneroComponents
 import "./effects/" as MoneroEffects
 
 Item {
     id: inlineButton
-    height: parent.height
-    anchors.top: parent.top
-    anchors.bottom: parent.bottom
 
     property bool small: false
-    property string shadowPressedColor: "#B32D00"
-    property string shadowReleasedColor: "#FF4304"
-    property string pressedColor: "#FF4304"
-    property string releasedColor: "#FF6C3C"
-    property string icon: ""
     property string textColor: MoneroComponents.Style.inlineButtonTextColor
-    property int fontSize: small ? 14 : 16
-    property int rectHeight: small ? 24 : 24
-    property int rectHMargin: small ? 16 : 22
     property alias text: inlineText.text
     property alias fontPixelSize: inlineText.font.pixelSize
     property alias fontFamily: inlineText.font.family
+    property alias fontStyleName: inlineText.font.styleName
+    property bool isFontAwesomeIcon: fontFamily == FontAwesome.fontFamily || fontFamily == FontAwesome.fontFamilySolid
     property alias buttonColor: rect.color
+    property alias tooltip: tooltip.text
+    property alias tooltipLeft: tooltip.tooltipLeft
+    property alias tooltipBottom: tooltip.tooltipBottom
+
+    height: isFontAwesomeIcon ? 30 : 24
+    width: isFontAwesomeIcon ? height : inlineText.width + 16
+
     signal clicked()
 
     function doClick() {
@@ -63,20 +63,16 @@ Item {
 
     Rectangle{
         id: rect
+        anchors.fill: parent
         color: MoneroComponents.Style.buttonInlineBackgroundColor
-        height: 24
-        width: inlineText.text ? (inlineText.width + 16) : inlineButton.icon ? (inlineImage.width + 16) : rect.height
         radius: 4
 
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: 4
 
         MoneroComponents.TextPlain {
             id: inlineText
             font.family: MoneroComponents.Style.fontBold.name
             font.bold: true
-            font.pixelSize: inlineButton.fontSize
+            font.pixelSize: inlineButton.isFontAwesomeIcon ? 22 : inlineButton.small ? 14 : 16
             color: inlineButton.textColor
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
@@ -89,11 +85,9 @@ Item {
             }
         }
 
-        Image {
-            id: inlineImage
-            visible: inlineButton.icon !== ""
-            anchors.centerIn: parent
-            source: inlineButton.icon
+        MoneroComponents.Tooltip {
+            id: tooltip
+            anchors.fill: parent
         }
 
         MouseArea {
@@ -101,12 +95,17 @@ Item {
             cursorShape: rect.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
             hoverEnabled: true
             anchors.fill: parent
-            onClicked: doClick()
+            onClicked: {
+                tooltip.text ? tooltip.tooltipPopup.close() : ""
+                doClick()
+            }
             onEntered: {
+                tooltip.text ? tooltip.tooltipPopup.open() : ""
                 rect.color = buttonColor ? buttonColor : "#707070";
                 rect.opacity = 0.8;
             }
             onExited: {
+                tooltip.text ? tooltip.tooltipPopup.close() : ""
                 rect.opacity = 1.0;
                 rect.color = buttonColor ? buttonColor : "#808080";
             }

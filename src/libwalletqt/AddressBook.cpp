@@ -32,7 +32,6 @@
 AddressBook::AddressBook(Monero::AddressBook *abImpl,QObject *parent)
   : QObject(parent), m_addressBookImpl(abImpl)
 {
-    qDebug(__FUNCTION__);
     getAll();
 }
 
@@ -48,15 +47,15 @@ int AddressBook::errorCode() const
 
 void AddressBook::getAll()
 {
-    qDebug(__FUNCTION__);
-
     emit refreshStarted();
 
     {
         QWriteLocker locker(&m_lock);
 
+        m_addresses.clear();
         m_rows.clear();
         for (auto &abr: m_addressBookImpl->getAll()) {
+            m_addresses.insert(QString::fromStdString(abr->getAddress()), m_rows.size());
             m_rows.append(abr);
         }
     }
@@ -122,9 +121,14 @@ quint64 AddressBook::count() const
     return m_rows.size();
 }
 
-int AddressBook::lookupPaymentID(const QString &payment_id) const
+QString AddressBook::getDescription(const QString &address) const
 {
     QReadLocker locker(&m_lock);
 
-    return m_addressBookImpl->lookupPaymentID(payment_id.toStdString());
+    const QMap<QString, size_t>::const_iterator it = m_addresses.find(address);
+    if (it == m_addresses.end())
+    {
+        return {};
+    }
+    return QString::fromStdString(m_rows.value(*it)->getDescription());
 }

@@ -29,20 +29,32 @@
 import QtQuick 2.9
 import QtQuick.Layouts 1.1
 
+import FontAwesome 1.0
+
 import "../components" as MoneroComponents
 
 Item {
     id: button
+    property bool fontAwesomeIcon: false
+    property bool primary: true
     property string rightIcon: ""
     property string rightIconInactive: ""
-    property string textColor: button.enabled? MoneroComponents.Style.buttonTextColor: MoneroComponents.Style.buttonTextColorDisabled
+    property color textColor: !button.enabled
+        ? MoneroComponents.Style.buttonTextColorDisabled
+        : primary
+        ? MoneroComponents.Style.buttonTextColor
+        : MoneroComponents.Style.buttonSecondaryTextColor;
     property bool small: false
     property alias text: label.text
+    property alias fontBold: label.font.bold
     property int fontSize: {
         if(small) return 14;
         else return 16;
     }
     property alias label: label
+    property alias tooltip: tooltip.text
+    property alias tooltipLeft: tooltip.tooltipLeft
+    property alias tooltipPopup: tooltip.tooltipPopup
     signal clicked()
 
     height: small ?  30 : 36
@@ -59,7 +71,7 @@ Item {
         id: buttonRect
         anchors.fill: parent
         radius: 3
-        border.width: parent.focus ? 1 : 0
+        border.width: parent.focus && parent.enabled ? 1 : 0
 
         state: button.enabled ? "active" : "disabled"
         Component.onCompleted: state = state
@@ -67,10 +79,12 @@ Item {
         states: [
             State {
                 name: "hover"
-                when: buttonArea.containsMouse || button.focus
+                when: button.enabled && (buttonArea.containsMouse || button.focus)
                 PropertyChanges {
                     target: buttonRect
-                    color: MoneroComponents.Style.buttonBackgroundColorHover
+                    color: primary
+                        ? MoneroComponents.Style.buttonBackgroundColorHover
+                        : MoneroComponents.Style.buttonSecondaryBackgroundColorHover
                 }
             },
             State {
@@ -78,7 +92,9 @@ Item {
                 when: button.enabled
                 PropertyChanges {
                     target: buttonRect
-                    color: MoneroComponents.Style.buttonBackgroundColor
+                    color: primary
+                        ? MoneroComponents.Style.buttonBackgroundColor
+                        : MoneroComponents.Style.buttonSecondaryBackgroundColor
                 }
             },
             State {
@@ -125,17 +141,33 @@ Item {
         }
 
         Image {
-            visible: button.rightIcon !== ""
+            visible: !fontAwesomeIcon && button.rightIcon !== ""
             Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
             width: button.small ? 16 : 20
             height: button.small ? 16 : 20
             source: {
+                if (fontAwesomeIcon) return "";
                 if(button.rightIconInactive !== "" && !button.enabled) {
                     return button.rightIconInactive;
                 }
                 return button.rightIcon;
             }
         }
+
+        Text {
+            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            color: MoneroComponents.Style.defaultFontColor
+            font.family: FontAwesome.fontFamilySolid
+            font.pixelSize: button.small ? 16 : 20
+            font.styleName: "Solid"
+            text: button.rightIcon
+            visible: fontAwesomeIcon && button.rightIcon !== ""
+        }
+    }
+
+    MoneroComponents.Tooltip {
+        id: tooltip
+        anchors.fill: parent
     }
 
     MouseArea {
@@ -143,6 +175,8 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         onClicked: doClick()
+        onEntered: tooltip.text ? tooltip.tooltipPopup.open() : ""
+        onExited: tooltip.text ? tooltip.tooltipPopup.close() : ""
         cursorShape: Qt.PointingHandCursor
     }
 

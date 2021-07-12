@@ -56,10 +56,20 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             spacing: 0
 
-            WizardHeader {
-                Layout.bottomMargin: 20
-                title: qsTr("Welcome to Monero") + translationManager.emptyString
-                subtitle: ""
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                WizardHeader {
+                    Layout.bottomMargin: 7
+                    Layout.fillWidth: true
+                    title: qsTr("Welcome to Monero") + translationManager.emptyString
+                    subtitle: ""
+                }
+
+                MoneroComponents.LanguageButton {
+                    Layout.bottomMargin: 8
+                }
             }
 
             WizardMenuItem {
@@ -110,6 +120,7 @@ Rectangle {
 
                 onMenuClicked: {
                     wizardStateView.state = "wizardOpenWallet1"
+                    wizardStateView.wizardOpenWallet1View.pageRoot.forceActiveFocus();
                 }
             }
 
@@ -147,15 +158,6 @@ Rectangle {
                         wizardController.wizardState = 'wizardModeSelection';
                     }                    
                 }
-
-                MoneroComponents.StandardButton {
-                    small: true
-                    text: qsTr("Change language") + translationManager.emptyString
-
-                    onClicked: {
-                        appWindow.toggleLanguageView();
-                    }
-                }
             }
 
             MoneroComponents.CheckBox2 {
@@ -180,49 +182,42 @@ Rectangle {
                 columns: 4
                 columnSpacing: 20
                 Layout.fillWidth: true
+                Layout.topMargin: 10
 
-                ColumnLayout {
-                    Layout.topMargin: 4
+                MoneroComponents.StandardDropdown {
+                    id: networkTypeDropdown
+                    currentIndex: persistentSettings.nettype
+                    dataModel: networkTypeModel
+                    Layout.maximumWidth: 180
+                    labelText: qsTr("Network") + ":" + translationManager.emptyString
+                    labelFontSize: 14
 
-                    MoneroComponents.Label {
-                        text: qsTr("Change Network:") + translationManager.emptyString
-                        fontSize: 14
-                    }
-
-                    MoneroComponents.StandardDropdown {
-                        id: networkTypeDropdown
-                        dataModel: networkTypeModel
-                        Layout.fillWidth: true
-                        Layout.maximumWidth: 180
-                        Layout.topMargin: 5
-
-                        onChanged: {
-                            var item = dataModel.get(currentIndex).nettype.toLowerCase();
-                            if(item === "mainnet") {
-                                persistentSettings.nettype = NetworkType.MAINNET
-                            } else if(item === "stagenet"){
-                                persistentSettings.nettype = NetworkType.STAGENET
-                            } else if(item === "testnet"){
-                                persistentSettings.nettype = NetworkType.TESTNET
-                            }
-                            appWindow.disconnectRemoteNode()
+                    onChanged: {
+                        var item = dataModel.get(currentIndex).nettype.toLowerCase();
+                        if(item === "mainnet") {
+                            persistentSettings.nettype = NetworkType.MAINNET
+                        } else if(item === "stagenet"){
+                            persistentSettings.nettype = NetworkType.STAGENET
+                        } else if(item === "testnet"){
+                            persistentSettings.nettype = NetworkType.TESTNET
                         }
+                        appWindow.disconnectRemoteNode()
                     }
                 }
 
                 MoneroComponents.LineEdit {
                     id: kdfRoundsText
-                    Layout.fillWidth: true
+                    Layout.maximumWidth: 180
 
                     labelText: qsTr("Number of KDF rounds:") + translationManager.emptyString
                     labelFontSize: 14
+                    fontSize: 16
                     placeholderFontSize: 16
                     placeholderText: "0"
                     validator: IntValidator { bottom: 1 }
                     text: persistentSettings.kdfRounds ? persistentSettings.kdfRounds : "1"
                     onTextChanged: {
-                        console.log('x');
-                        kdfRoundsText.text = persistentSettings.kdfRounds = parseInt(kdfRoundsText.text) >= 1 ? parseInt(kdfRoundsText.text) : 1;
+                        persistentSettings.kdfRounds = parseInt(kdfRoundsText.text) >= 1 ? parseInt(kdfRoundsText.text) : 1;
                     }
                 }
 
@@ -242,11 +237,6 @@ Rectangle {
             duration: 200;
             easing.type: Easing.InCubic;
         }
-    }
-
-    Component.onCompleted: {
-        networkTypeDropdown.currentIndex = persistentSettings.nettype;
-        networkTypeDropdown.update();
     }
 
     function onPageCompleted(){

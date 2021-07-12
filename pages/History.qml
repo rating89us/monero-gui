@@ -127,7 +127,7 @@ Rectangle {
                     image: "qrc:///images/whiteDropIndicator.png"
                     fontAwesomeFallbackIcon: FontAwesome.arrowDown
                     fontAwesomeFallbackSize: 14
-                    rotation: sortAndFilter.collapsed ? 0 : 180
+                    rotation: sortAndFilter.collapsed ? 180 : 0
                     color: MoneroComponents.Style.defaultFontColor
 
                     MouseArea {
@@ -154,12 +154,15 @@ Rectangle {
                 Layout.fillWidth: true
                 input.topPadding: 6
                 input.bottomPadding: 6
-                fontSize: 16
+                fontSize: 15
                 labelFontSize: 14
                 placeholderText: qsTr("Search by Transaction ID, Address, Description, Amount or Blockheight") + translationManager.emptyString
-                placeholderFontSize: 16
+                placeholderFontSize: 15
                 inputHeight: 34
                 onTextUpdated: {
+                    if (!sortAndFilter.collapsed) {
+                        sortAndFilter.collapsed = true;
+                    }
                     if(searchInput.text != null && searchInput.text.length >= 3){
                         root.sortSearchString = searchInput.text;
                         root.reset();
@@ -168,6 +171,27 @@ Rectangle {
                         root.sortSearchString = null;
                         root.reset();
                         root.updateFilter();
+                    }
+                }
+
+                Rectangle {
+                    color: "transparent"
+                    height: cleanButton.height
+                    width: cleanButton.width
+                    Layout.rightMargin: -8
+                    Layout.leftMargin: -2
+
+                    MoneroComponents.InlineButton {
+                        id: cleanButton
+                        buttonColor: "transparent"
+                        fontFamily: FontAwesome.fontFamilySolid
+                        fontStyleName: "Solid"
+                        fontPixelSize: 18
+                        text: FontAwesome.times
+                        tooltip: qsTr("Clean") + translationManager.emptyString
+                        tooltipLeft: true
+                        visible: searchInput.text != ""
+                        onClicked: searchInput.text = ""
                     }
                 }
             }
@@ -569,12 +593,11 @@ Rectangle {
             delegate: Rectangle {
                 id: delegate
                 property bool collapsed: root.txDataCollapsed.indexOf(hash) >= 0 ? true : false
-                anchors.left: parent.left
-                anchors.right: parent.right
+                anchors.left: parent ? parent.left : undefined
+                anchors.right: parent ? parent.right : undefined
                 height: {
                     if(!collapsed) return 60;
-                    if(isout && delegate.address !== "") return 320;
-                    return 220;
+                    return 320;
                 }
                 color: {
                     if(!collapsed) return "transparent"
@@ -589,6 +612,7 @@ Rectangle {
                     color: "transparent"
 
                     Rectangle {
+                        visible: !isFailed && !isPending
                         anchors.top: parent.top
                         anchors.topMargin: 24
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -596,6 +620,19 @@ Rectangle {
                         height: 10
                         radius: 8
                         color: isout ? "#d85a00" : "#2eb358"
+                    }
+
+                    MoneroComponents.TextPlain {
+                        visible: isFailed || isPending
+                        anchors.top: parent.top
+                        anchors.topMargin: 24
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        font.family: FontAwesome.fontFamilySolid
+                        font.styleName: isFailed ? "Solid" : ""
+                        font.pixelSize: 15
+                        text: isFailed ? FontAwesome.times : FontAwesome.clockO
+                        color: isFailed ? "#FF0000" : MoneroComponents.Style.defaultFontColor
+                        themeTransition: false
                     }
                 }
 
@@ -618,6 +655,7 @@ Rectangle {
                             spacing: 0
                             clip: true
                             Layout.preferredHeight: 120
+                            Layout.minimumWidth: 180
 
                             Rectangle {
                                 color: "transparent"
@@ -633,7 +671,7 @@ Rectangle {
                                 MoneroComponents.TextPlain {
                                     font.family: MoneroComponents.Style.fontRegular.name
                                     font.pixelSize: 15
-                                    text: isout ? qsTr("Sent") : qsTr("Received") + translationManager.emptyString
+                                    text: (isout ? qsTr("Sent") : qsTr("Received")) + (isFailed ? " (" + qsTr("Failed") + ")" : (isPending ? " (" + qsTr("Pending") + ")" : "")) + translationManager.emptyString
                                     color: MoneroComponents.Style.historyHeaderTextColor
                                     anchors.verticalCenter: parent.verticalCenter
                                     themeTransitionBlackColor: MoneroComponents.Style._b_historyHeaderTextColor
@@ -649,7 +687,7 @@ Rectangle {
                                 MoneroComponents.TextPlain {
                                     font.family: MoneroComponents.Style.fontRegular.name
                                     font.pixelSize: 15
-                                    text: displayAmount
+                                    text: (amount == 0 ? qsTr("Unknown amount") : displayAmount) + translationManager.emptyString
                                     color: MoneroComponents.Style.defaultFontColor
                                     anchors.verticalCenter: parent.verticalCenter
 
@@ -701,7 +739,7 @@ Rectangle {
                                     font.pixelSize: 15
                                     text: {
                                         if(!isout && confirmationsRequired === 60) return qsTr("Yes") + translationManager.emptyString;
-                                        if(fee !== "") return fee + " XMR";
+                                        if(fee !== "") return Utils.removeTrailingZeros(fee) + " XMR";
                                         return "-";
                                     }
 
@@ -729,6 +767,7 @@ Rectangle {
                             spacing: 0
                             clip: true
                             Layout.preferredHeight: 120
+                            Layout.minimumWidth: 230
 
                             Rectangle {
                                 color: "transparent"
@@ -744,7 +783,7 @@ Rectangle {
                                 MoneroComponents.TextPlain {
                                     font.family: MoneroComponents.Style.fontRegular.name
                                     font.pixelSize: 15
-                                    text: qsTr("Blockheight") + translationManager.emptyString
+                                    text: (isout ? qsTr("To") : qsTr("In")) + translationManager.emptyString
                                     color: MoneroComponents.Style.historyHeaderTextColor
                                     themeTransitionBlackColor: MoneroComponents.Style._b_historyHeaderTextColor
                                     themeTransitionWhiteColor: MoneroComponents.Style._w_historyHeaderTextColor
@@ -758,15 +797,41 @@ Rectangle {
                                 Layout.preferredHeight: 20
 
                                 MoneroComponents.TextPlain {
+                                    id: addressField
                                     font.family: MoneroComponents.Style.fontRegular.name
-                                    font.pixelSize: 14
-                                    text: blockheight > 0 ? blockheight : qsTr('Pending') + translationManager.emptyString;
+                                    font.pixelSize: 15
+                                    text: {
+                                        if (isout) {
+                                            if (address) {
+                                                return (addressBookName ? FontAwesome.addressBook + " " + addressBookName : TxUtils.addressTruncate(address, 8));
+                                            }
+                                            if (amount != 0) {
+                                                return qsTr("Unknown recipient") + translationManager.emptyString;
+                                            } else {
+                                                return qsTr("My wallet") + translationManager.emptyString;
+                                            }
+                                        } else {
+                                            if (receivingAddress) {
+                                                if (subaddrIndex == 0) {
+                                                    return qsTr("Address") + " #0" + " (" + qsTr("Primary address") + ")" + translationManager.emptyString;
+                                                } else {
+                                                    if (receivingAddressLabel) {
+                                                        return qsTr("Address") + " #" + subaddrIndex + " (" + receivingAddressLabel + ")" + translationManager.emptyString;
+                                                    } else {
+                                                        return qsTr("Address") + " #" + subaddrIndex + " (" + TxUtils.addressTruncate(receivingAddress, 4) + ")" + translationManager.emptyString;
+                                                    }
+                                                }
+                                            } else {
+                                                return qsTr("Unknown address") + translationManager.emptyString;
+                                            }
+                                        }
+                                    }
 
                                     color: MoneroComponents.Style.defaultFontColor
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     MouseArea {
-                                        state: "copyable"
+                                        state: isout ? "copyable_address" : "copyable_receiving_address"
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         onEntered: parent.color = MoneroComponents.Style.orange
@@ -837,6 +902,7 @@ Rectangle {
                             spacing: 0
                             clip: true
                             Layout.preferredHeight: 120
+                            Layout.minimumWidth: 130
 
                             Rectangle {
                                 color: "transparent"
@@ -899,9 +965,15 @@ Rectangle {
                                 Layout.preferredHeight: 10
                             }
 
+                            Rectangle {
+                                color: "transparent"
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 10
+                            }
+
                             Item {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 60
+                                Layout.preferredHeight: 50
 
                                 MoneroComponents.StandardButton {
                                     id: btnDetails
@@ -909,7 +981,9 @@ Rectangle {
                                     small: true
                                     label.font.family: FontAwesome.fontFamily
                                     fontSize: 18
-                                    width: 28
+                                    width: 34
+                                    tooltip: qsTr("Transaction details") + translationManager.emptyString
+                                    tooltipLeft: true
 
                                     MouseArea {
                                         state: "details"
@@ -917,8 +991,14 @@ Rectangle {
                                         hoverEnabled: true
                                         z: parent.z + 1
 
-                                        onEntered: parent.opacity = 0.8;
-                                        onExited: parent.opacity = 1.0;
+                                        onEntered: {
+                                            parent.opacity = 0.8;
+                                            parent.tooltipPopup.open()
+                                        }
+                                        onExited: {
+                                            parent.opacity = 1.0;
+                                            parent.tooltipPopup.close()
+                                        }
                                     }
                                 }
 
@@ -939,7 +1019,9 @@ Rectangle {
                                     small: true
                                     label.font.family: FontAwesome.fontFamilyBrands
                                     fontSize: 18
-                                    width: 36
+                                    width: 34
+                                    tooltip: qsTr("Generate payment proof") + translationManager.emptyString
+                                    tooltipLeft: true
 
                                     MouseArea {
                                         state: "proof"
@@ -947,8 +1029,14 @@ Rectangle {
                                         hoverEnabled: true
                                         z: parent.z + 1
 
-                                        onEntered: parent.opacity = 0.8;
-                                        onExited: parent.opacity = 1.0;
+                                        onEntered: {
+                                            parent.opacity = 0.8;
+                                            parent.tooltipPopup.open()
+                                        }
+                                        onExited: {
+                                            parent.opacity = 1.0;
+                                            parent.tooltipPopup.close()
+                                        }
                                     }
                                 }
                             }
@@ -1118,7 +1206,6 @@ Rectangle {
                         }
 
                         Rectangle {
-                            visible: isout
                             color: "transparent"
                             Layout.fillWidth: true
                             Layout.preferredHeight: 20
@@ -1126,7 +1213,7 @@ Rectangle {
                             MoneroComponents.TextPlain {
                                 font.family: MoneroComponents.Style.fontRegular.name
                                 font.pixelSize: 15
-                                text: qsTr("Address sent to") + translationManager.emptyString
+                                text: qsTr("Blockheight") + translationManager.emptyString
                                 color: MoneroComponents.Style.historyHeaderTextColor
                                 themeTransitionBlackColor: MoneroComponents.Style._b_historyHeaderTextColor
                                 themeTransitionWhiteColor: MoneroComponents.Style._w_historyHeaderTextColor
@@ -1135,30 +1222,20 @@ Rectangle {
                         }
 
                         Rectangle {
-                            visible: isout
                             color: "transparent"
                             Layout.fillWidth: true
                             Layout.preferredHeight: 20
 
                             MoneroComponents.TextPlain {
                                 font.family: MoneroComponents.Style.fontRegular.name
-                                font.pixelSize: 15
-                                text: {
-                                    if(isout && address !== ""){
-                                        return TxUtils.addressTruncate(address, 24);
-                                    }
-
-                                    if(isout && blockheight === 0)
-                                        return qsTr("Waiting for transaction to leave txpool.") + translationManager.emptyString
-                                    else
-                                        return qsTr("Unknown recipient") + translationManager.emptyString;
-                                }
+                                font.pixelSize: 14
+                                text: (blockheight > 0 ? blockheight : qsTr('Pending')) + translationManager.emptyString;
 
                                 color: MoneroComponents.Style.defaultFontColor
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 MouseArea {
-                                    state: "copyable_address"
+                                    state: "copyable"
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     onEntered: parent.color = MoneroComponents.Style.orange
@@ -1192,9 +1269,10 @@ Rectangle {
                         for(var i = 0; i < res.length; i+=1){
                             if(res[i].containsMouse === true){
                                 if(res[i].state === 'copyable' && res[i].parent.hasOwnProperty('text')) toClipboard(res[i].parent.text);
-                                if(res[i].state === 'copyable_address') root.toClipboard(address);
+                                if(res[i].state === 'copyable_address') (address ? root.toClipboard(address) : root.toClipboard(addressField.text));
+                                if(res[i].state === 'copyable_receiving_address') root.toClipboard(currentWallet.address(subaddrAccount, subaddrIndex));
                                 if(res[i].state === 'copyable_txkey') root.getTxKey(hash, res[i]);
-                                if(res[i].state === 'set_tx_note') root.editDescription(hash, tx_note);
+                                if(res[i].state === 'set_tx_note') root.editDescription(hash, tx_note, root.txPage);
                                 if(res[i].state === 'details') root.showTxDetails(hash, paymentId, destinations, subaddrAccount, subaddrIndex, dateTime, displayAmount, isout);
                                 if(res[i].state === 'proof') root.showTxProof(hash, paymentId, destinations, subaddrAccount, subaddrIndex);
                                 doCollapse = false;
@@ -1233,6 +1311,8 @@ Rectangle {
                         image: "qrc:///images/whiteDropIndicator.png"
                         rotation: delegate.collapsed ? 180 : 0
                         color: MoneroComponents.Style.defaultFontColor
+                        fontAwesomeFallbackIcon: FontAwesome.arrowDown
+                        fontAwesomeFallbackSize: 14
                     }
                 }
 
@@ -1308,7 +1388,7 @@ Rectangle {
                 checked: persistentSettings.historyHumanDates
                 onClicked: {
                     persistentSettings.historyHumanDates = !persistentSettings.historyHumanDates
-                    root.updateDisplay(root.txOffset, root.txMax, false);
+                    root.updateDisplay(root.txOffset, root.txMax);
                 }
                 text: qsTr("Human readable date format") + translationManager.emptyString
             }
@@ -1330,7 +1410,7 @@ Rectangle {
         }
 
         if (typeof root.model !== 'undefined' && root.model != null) {
-            toDatePicker.currentDate = root.model.transactionHistory.lastDateTime
+            toDatePicker.currentDate = new Date(); //today
         }
 
         // extract from model, create JS array of txs
@@ -1355,7 +1435,7 @@ Rectangle {
         }
     }
 
-    function updateFilter(){
+    function updateFilter(currentPage){
         // applying filters
         root.txData = JSON.parse(JSON.stringify(root.txModelData)); // deepcopy
 
@@ -1384,7 +1464,13 @@ Rectangle {
                     txs.push(item);
                 } else if(item.address !== "" && item.address.toLowerCase().startsWith(root.sortSearchString.toLowerCase())){
                     txs.push(item);
-                } else if(item.blockheight.toString().startsWith(root.sortSearchString)) {
+                } else if(item.receivingAddress !== "" && item.receivingAddress.toLowerCase().startsWith(root.sortSearchString.toLowerCase())){
+                    txs.push(item);
+                } else if(item.receivingAddressLabel !== "" && item.receivingAddressLabel.toLowerCase().startsWith(root.sortSearchString.toLowerCase())){
+                    txs.push(item);
+                } else if(item.addressBookName !== "" && item.addressBookName.toLowerCase().startsWith(root.sortSearchString.toLowerCase())){
+                    txs.push(item);
+                } else if(typeof item.blockheight !== "undefined" && item.blockheight.toString().startsWith(root.sortSearchString)) {
                     txs.push(item);
                 } else if(item.tx_note.toLowerCase().indexOf(root.sortSearchString.toLowerCase()) !== -1) {
                     txs.push(item);
@@ -1399,6 +1485,9 @@ Rectangle {
 
         root.updateSort();
         root.updateDisplay(root.txOffset, root.txMax);
+        if (currentPage) {
+            root.paginationJump(parseInt(currentPage));
+        }
     }
 
     function updateSort(){
@@ -1414,15 +1503,14 @@ Rectangle {
         root.updateDisplay(root.txOffset, root.txMax);
     }
 
-    function updateDisplay(tx_offset, tx_max, auto_collapse) {
-        if(typeof auto_collapse === 'undefined') auto_collapse = false;
+    function updateDisplay(tx_offset, tx_max) {
         txListViewModel.clear();
 
         // limit results as per tx_max (root.txMax)
         var txs = root.txData.slice(tx_offset, tx_offset + tx_max);
 
-        // make first result on the first page collapsed by default
-        if(auto_collapse && root.txPage === 1 && txs.length > 0 && (root.sortSearchString == null || root.sortSearchString === ""))
+        // collapse tx if there is a single result
+        if(root.txPage === 1 && txs.length === 1)
             root.txDataCollapsed.push(txs[0]['hash']);
 
         // populate listview
@@ -1462,6 +1550,8 @@ Rectangle {
 
         for (var i = 0; i < count; ++i) {
             var idx = _model.index(i, 0);
+            var isPending = model.data(idx, TransactionHistoryModel.TransactionPendingRole);
+            var isFailed = model.data(idx, TransactionHistoryModel.TransactionFailedRole);
             var isout = _model.data(idx, TransactionHistoryModel.TransactionIsOutRole);
             var amount = _model.data(idx, TransactionHistoryModel.TransactionAmountRole);
             var hash = _model.data(idx, TransactionHistoryModel.TransactionHashRole);
@@ -1478,18 +1568,25 @@ Rectangle {
             var timestamp = new Date(date + " " + time).getTime() / 1000;
             var dateHuman = Utils.ago(timestamp);
 
-            var displayAmount = amount;
-            if(displayAmount === 0){
-                // *sometimes* amount is 0, while the 'destinations string'
+            if (amount === 0) {
+                // transactions to the same account have amount === 0, while the 'destinations string'
                 // has the correct amount, so we try to fetch it from that instead.
-                displayAmount = TxUtils.destinationsToAmount(destinations);
-                displayAmount = Number(displayAmount *1);
+                amount = Number(TxUtils.destinationsToAmount(destinations));
             }
+            var displayAmount = Utils.removeTrailingZeros(amount.toFixed(12)) + " XMR";
 
             var tx_note = currentWallet.getUserNote(hash);
             var address = "";
-            if(isout) {
+            var addressBookName = "";
+            var receivingAddress = "";
+            var receivingAddressLabel = "";
+
+            if (isout) {
                 address = TxUtils.destinationsToAddress(destinations);
+                addressBookName = currentWallet ? currentWallet.addressBook.getDescription(address) : null;
+            } else {
+                receivingAddress = currentWallet ? currentWallet.address(subaddrAccount, subaddrIndex) : null;
+                receivingAddressLabel = currentWallet ? appWindow.currentWallet.getSubaddressLabel(subaddrAccount, subaddrIndex) : null;
             }
 
             if (isout)
@@ -1499,12 +1596,15 @@ Rectangle {
 
             root.txModelData.push({
                 "i": i,
+                "isPending": isPending,
+                "isFailed": isFailed,
                 "isout": isout,
-                "amount": Number(amount),
-                "displayAmount": displayAmount + " XMR",
+                "amount": amount,
+                "displayAmount": displayAmount,
                 "hash": hash,
                 "paymentId": paymentId,
                 "address": address,
+                "addressBookName": addressBookName,
                 "destinations": destinations,
                 "tx_note": tx_note,
                 "dateHuman": dateHuman,
@@ -1515,6 +1615,8 @@ Rectangle {
                 "fee": fee,
                 "confirmations": confirmations,
                 "confirmationsRequired": confirmationsRequired,
+                "receivingAddress": receivingAddress,
+                "receivingAddressLabel": receivingAddressLabel,
                 "subaddrAccount": subaddrAccount,
                 "subaddrIndex": subaddrIndex
             });
@@ -1524,20 +1626,20 @@ Rectangle {
         root.txCount = root.txData.length;
     }
 
-    function update() {
+    function update(currentPage) {
         // handle outside mutation of tx model; incoming/outgoing funds or new blocks. Update table.
         currentWallet.history.refresh(currentWallet.currentSubaddressAccount);
 
         root.updateTransactionsFromModel();
-        root.updateFilter();
+        root.updateFilter(currentPage);
     }
 
-    function editDescription(_hash, _tx_note){
+    function editDescription(_hash, _tx_note, currentPage){
         inputDialog.labelText = qsTr("Set description:") + translationManager.emptyString;
         inputDialog.onAcceptedCallback = function() {
             appWindow.currentWallet.setUserNote(_hash, inputDialog.inputText);
             appWindow.showStatusMessage(qsTr("Updated description."),3);
-            root.update();
+            root.update(currentPage);
         }
         inputDialog.onRejectedCallback = null;
         inputDialog.open(_tx_note);
@@ -1618,6 +1720,10 @@ Rectangle {
 
         console.log("getProof: Generate clicked: txid " + hash + ", address " + address);
         middlePanel.getProofClicked(hash, address, '');
+        informationPopup.title  = qsTr("Payment proof") + translationManager.emptyString;
+        informationPopup.text = qsTr("Generating payment proof") + "..." + translationManager.emptyString;
+        informationPopup.onCloseCallback = null
+        informationPopup.open()
     }
 
     function toClipboard(text){
@@ -1646,16 +1752,6 @@ Rectangle {
             + translationManager.emptyString;
     }
 
-    function lookupPaymentID(paymentId) {
-        if (!addressBookModel)
-            return ""
-        var idx = addressBookModel.lookupPaymentID(paymentId)
-        if (idx < 0)
-            return ""
-        idx = addressBookModel.index(idx, 0)
-        return addressBookModel.data(idx, AddressBookModel.AddressBookDescriptionRole)
-    }
-
     FileDialog {
         id: writeCSVFileDialog
         title: qsTr("Please choose a folder") + translationManager.emptyString
@@ -1682,7 +1778,7 @@ Rectangle {
             informationPopup.open();
         }
         Component.onCompleted: {
-            var _folder = 'file://' + moneroAccountsDir;
+            var _folder = 'file://' + appWindow.accountsDir;
             try {
                 _folder = 'file://' + desktopFolder;
             }
@@ -1699,16 +1795,38 @@ Rectangle {
             root.model = appWindow.currentWallet.historyModel;
             root.model.sortRole = TransactionHistoryModel.TransactionBlockHeightRole
             root.model.sort(0, Qt.DescendingOrder);
-            fromDatePicker.currentDate = model.transactionHistory.firstDateTime
+            var count = root.model.rowCount()
+            if (count > 0) {
+                //date of the first transaction
+                fromDatePicker.currentDate = root.model.data(root.model.index((count - 1), 0), TransactionHistoryModel.TransactionDateRole);
+            } else {
+                //date of monero birth (2014-04-18)
+                fromDatePicker.currentDate = model.transactionHistory.firstDateTime
+            }
         }
 
         root.reset();
         root.refresh();
         root.initialized = true;
+        root.updateFilter();
     }
 
     function onPageClosed(){
         root.initialized = false;
         root.reset(true);
+        root.clearFields();
+    }
+
+    function searchInHistory(searchTerm){
+        searchInput.text = searchTerm;
+        searchInput.forceActiveFocus();
+        searchInput.cursorPosition = searchInput.text.length;
+        sortAndFilter.collapsed = true;
+    }
+
+    function clearFields() {
+        sortAndFilter.collapsed = false;
+        searchInput.text = "";
+        root.txDataCollapsed = [];
     }
 }
